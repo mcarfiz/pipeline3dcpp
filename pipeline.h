@@ -279,14 +279,11 @@ class Pipeline{
                             
                             //do z-buff test
                             //if z-buff test ok, update z_buff and pass coordinates to fragmentshader (it returns a target_t)
-                            if(z_buffer_test_set(i, j, z_interp))
-                                video_(i, j) = fs_->computeShader(x_interp, y_interp, abs(z_interp), 0, 0, 0);
-                            
+                            if (z_buffer_test_set(i, j, z_interp))
+                                video_(i, j) = fs_->computeShader(x_interp, y_interp, z_interp, 0, 0, 0);      
                         }
                     } 
-                
                 }
-            
             }
             std::cout << video_;
         }
