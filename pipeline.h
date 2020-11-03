@@ -152,8 +152,8 @@ class SimpleFragmentShader : public IFragmentShader<char>{
     public:
         char computeShader(float x, float y, float z, float n, float u, float v){
             /*std::cout << "x_interp: "<< x<< ", y_interp: " << y << ", z_interp: "<<z<<"\n";
-            std::cout << "Stampa: " << 48 + (int)((z - (int)z)*10)<< "\n";*/
-            return  48 + (int)((z - (int)z)*10);
+            std::cout << "Stampa: " << 48 + (int)((z - floor(z))*10)<< "\n";*/
+            return  48 + (int)((z - floor(z))*10);
         }
 };
 
@@ -184,8 +184,8 @@ class Pipeline{
         void setFragmentShader(IFragmentShader<target_t> *fs){/*delete fs_;*/ fs_ = fs;}
 
         // Convert a point coordinate from ndc to screen space to be printable
-        size_t x_to_screen(float x){return ((x - pm_.getLeft()) * C / (pm_.getRight() - pm_.getLeft()));}
-        size_t y_to_screen(float y){return ((y - pm_.getTop()) * R / (pm_.getBottom() - pm_.getTop()));}
+        size_t x_to_screen(float x){return round(((x - pm_.getLeft()) * C / (pm_.getRight() - pm_.getLeft())));}
+        size_t y_to_screen(float y){return round(((y - pm_.getTop()) * R / (pm_.getBottom() - pm_.getTop())));}
 
         // Apply the projection and overwrite the ndc values to the old coordinates
         void computeNdc(std::vector<Vertex*> vertices){
@@ -201,7 +201,8 @@ class Pipeline{
                 // normalize for w and replace original coordinates since they aren't needed anymore
                 (*vertex).setX(x_/w_);
                 (*vertex).setY(y_/w_);
-                (*vertex).setZ(z_/w_);
+                // z needs to be "traslated" from (-1, 1) to (0,2) and divided by 2 to get it in (0, 1). Needed for the z interpolation 
+                (*vertex).setZ((z_/w_ + 1)*0.5f);
             }
         }
 
