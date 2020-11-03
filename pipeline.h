@@ -1,15 +1,3 @@
-/* 
-  1. View -> NDC
-  2. per ciascun triangolo: rasterize 
-  1. controlla inside-out per ciascun pixel <x,y,z>
-  2. se inside, controlla che z < z_buffer[x][y]
-  3. se z < z_buffer[x][y]:
-    1. z_buffer[x][y] = z;
-    2. interpola i dati del pixel
-    3. chiama il fragment_shader passandogli i dati del pixel
-        --> buffer[x][y] = fs.elabora(pixel) 
- * */
-
 #include <vector>
 #include <array>
 #include <iostream>
@@ -25,7 +13,7 @@
 template<typename target_t, size_t C, size_t R>
 class Render{
     private:
-        // The class holds a std::array to hold the matrix in a contiguous memory section
+        // The class holds a std::array to hold the screen matrix in a contiguous memory section
         std::array<target_t, R*C> container_;
 
     public:
@@ -52,7 +40,6 @@ class Render{
         target_t& operator()(size_t y, size_t x){
             if (x >= R || y >= C)
                 throw std::out_of_range("Target indices out of range");
-            //std::cout << "accessing location " << (R*y+x) << ", R: " << R << "\n";
             return container_[C*x + y];
         }
 
@@ -74,8 +61,7 @@ std::ostream& operator << (std::ostream& stream, Render<target_t, C, R>& video){
     int mult = 1;
     size_t cont = 0;
     for (const auto& i: video.getTarget()){
-        // da modificare il char \t, posso stampare tutto attaccato inrealtà
-        stream << i;// << cont << "\t";
+        stream << i;
         // Check if a row has ended and eventually break the line
         if (cont == mult * (video.getWidth()) -1){
             mult++;
@@ -89,7 +75,7 @@ std::ostream& operator << (std::ostream& stream, Render<target_t, C, R>& video){
 // Class representing a 3d vertex and its coordinates
 class Vertex{
     private:
-        float x_, y_, z_, w_ = 0.0f;
+        float x_, y_, z_ = 0.0f;
         //mancano vettore 3dnormal e coordinate u,v anche se non vengono usate
 
     public:
@@ -101,13 +87,11 @@ class Vertex{
         float getX(){return x_;}
         float getY(){return y_;}
         float getZ(){return z_;}
-        float getW(){return w_;}
 
         // Setters
         void setX(float x){x_ = x;}
         void setY(float y){y_ = y;}
         void setZ(float z){z_ = z;}
-        void setW(float w){w_ = w;}
 
 };
 
@@ -167,8 +151,8 @@ class IFragmentShader{
 class SimpleFragmentShader : public IFragmentShader<char>{
     public:
         char computeShader(float x, float y, float z, float n, float u, float v){
-            std::cout << "x_interp: "<< x<< ", y_interp: " << y << ", z_interp: "<<z<<"\n";
-            std::cout << "Stampa: " << 48 + (int)((z - (int)z)*10)<< "\n";
+            /*std::cout << "x_interp: "<< x<< ", y_interp: " << y << ", z_interp: "<<z<<"\n";
+            std::cout << "Stampa: " << 48 + (int)((z - (int)z)*10)<< "\n";*/
             return  48 + (int)((z - (int)z)*10);
         }
 };
@@ -184,7 +168,7 @@ class Pipeline{
         std::array<float, 3> scalars;
 
     public:
-        // Constructor allows to set a projection matrix and the desired vertex and fragment shaders
+        // Constructor allows to set a projection matrix and the desired fragment shader
         // it also initializes the z-buffer to +infinite
         Pipeline(ProjectionMatrix pm, IFragmentShader<target_t> *fs) : pm_(pm), fs_(fs){
             for (int i = 0; i < R; i++){
@@ -196,7 +180,7 @@ class Pipeline{
         // Destructor not used since no new is called
         //~Pipeline() {delete vs_;delete fs_;}
 
-        // Setter methods
+        // Setter method for the shader
         void setFragmentShader(IFragmentShader<target_t> *fs){/*delete fs_;*/ fs_ = fs;}
 
         // Convert a point coordinate from ndc to screen space to be printable
@@ -214,13 +198,11 @@ class Pipeline{
                 z_ = ((*vertex).getZ())*((pm_.getFar()+pm_.getNear())/(pm_.getFar()-pm_.getNear())) + ((-2*pm_.getNear()*pm_.getFar())/(pm_.getFar()-pm_.getNear()));
                 w_ = (*vertex).getZ();
 
-                // normalize for w and replace originale coordinates since they aren't needed anymore
+                // normalize for w and replace original coordinates since they aren't needed anymore
                 (*vertex).setX(x_/w_);
                 (*vertex).setY(y_/w_);
                 (*vertex).setZ(z_/w_);
-                (*vertex).setW(w_);
             }
-            std::cout << "Vertex shader has been computed. NDC are set.\n\n";
         }
 
         // Check if a point (x, y) is inside triangle t
@@ -242,13 +224,9 @@ class Pipeline{
             return (scalars[0]>=0 && scalars[0]<=1) && (scalars[1]>=0 && scalars[1]<=1 ) && (scalars[2]>=0 && scalars[2]<=1);
         }
 
-        bool z_buffer_test_set(size_t x, size_t y, float z){
-            if (z_buffer_(x, y) > z){
-                z_buffer_(x, y) = z;
-                return true;
-            }
-            return false;
-        }
+        // Wrapper methods for print and save of screen
+        void print(){std::cout << video_;}
+        void fileSave(std::string filename){video_.fileSave(filename);}
 
         void render(std::vector<Vertex*> vertices, std::vector<Triangle> triangles){
             // for each vertex transform coordinates into ndc
@@ -261,13 +239,13 @@ class Pipeline{
                 float x_max = std::max({triangle(0)->getX(), triangle(1)->getX(), triangle(2)->getX()});
                 float y_min = std::min({triangle(0)->getY(), triangle(1)->getY(), triangle(1)->getY()});
 
-                // conversion to screen coordinates
+                // conversion of rectangle coords to screen
                 size_t x_r_screen_min = x_to_screen(x_min);
                 size_t y_r_screen_min = y_to_screen(y_min);
                 size_t x_r_screen_max = x_to_screen(x_max);
                 size_t y_r_screen_max = y_to_screen(y_max);
                 
-                //inside-outside test for each point in the rectangle
+                // inside-outside test for each point in the rectangle
                 for (size_t i = std::min({x_r_screen_min, x_r_screen_max}); i <= std::max({x_r_screen_min, x_r_screen_max}); i++){
                     for (size_t j = std::min({y_r_screen_min, y_r_screen_max}); j <= std::max({y_r_screen_min, y_r_screen_max}); j++){
                         if (isInside(triangle, i, j)){
@@ -277,14 +255,15 @@ class Pipeline{
                             float y_interp = ( (scalars[0]/triangle(0)->getZ())*triangle(0)->getY() +  (scalars[1]/triangle(1)->getZ())*triangle(1)->getY() + (scalars[2]/triangle(2)->getZ())*triangle(2)->getY()) / (scalars[0]/triangle(0)->getZ() + scalars[1]/triangle(1)->getZ() + scalars[2]/triangle(2)->getZ());;
                             float z_interp = ( (scalars[0]/triangle(0)->getZ())*triangle(0)->getZ() +  (scalars[1]/triangle(1)->getZ())*triangle(1)->getZ() + (scalars[2]/triangle(2)->getZ())*triangle(2)->getZ()) / (scalars[0]/triangle(0)->getZ() + scalars[1]/triangle(1)->getZ() + scalars[2]/triangle(2)->getZ());;
                             
-                            //do z-buff test
                             //if z-buff test ok, update z_buff and pass coordinates to fragmentshader (it returns a target_t)
-                            if (z_buffer_test_set(i, j, z_interp))
-                                video_(i, j) = fs_->computeShader(x_interp, y_interp, z_interp, 0, 0, 0);      
+                            if (z_buffer_(i, j) > z_interp){
+                                z_buffer_(i, j) = z_interp;
+                                video_(i, j) = fs_->computeShader(x_interp, y_interp, z_interp, 0, 0, 0);     
+                            }    
                         }
                     } 
                 }
             }
-            std::cout << video_;
+            print();
         }
 };
