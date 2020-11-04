@@ -194,8 +194,8 @@ class Pipeline{
         void setFragmentShader(IFragmentShader<target_t> *fs){/*delete fs_;*/ fs_ = fs;}
 
         // Convert a point coordinate from ndc to screen space to be printable
-        size_t x_to_screen(float x){return round(((x - pm_.getLeft()) * C / (pm_.getRight() - pm_.getLeft())));}
-        size_t y_to_screen(float y){return round(((y - pm_.getTop()) * R / (pm_.getBottom() - pm_.getTop())));}
+        size_t x_to_screen(float x){return floor(((x - pm_.getLeft()) * C / (pm_.getRight() - pm_.getLeft())));}
+        size_t y_to_screen(float y){return floor(((y - pm_.getTop()) * R / (pm_.getBottom() - pm_.getTop())));}
 
         // Apply the perspective projection and overwrite the ndc values to the old coordinates
         void computeNdc(std::vector<Vertex*> vertices){
