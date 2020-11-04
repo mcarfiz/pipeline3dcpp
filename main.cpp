@@ -30,11 +30,10 @@ int main(){
 
     //left=top=-1, right=bottom=near=1, and far=2;
     ProjectionMatrix pm1(-1, 1, -1, 1, 1, 2);
-    //cout << pm1.getFar() << "\n";
 
     SimpleFragmentShader sfs;
     Pipeline<char, 150, 50> p1(pm1, &sfs);
     p1.render(vertices, triangles);
-    //cout << v1.getX();
+    p1.print();
     return 0;
 }

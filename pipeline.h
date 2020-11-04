@@ -21,7 +21,7 @@ class Render{
         Render(){
             for (size_t i = 0; i < container_.size(); i++){
                     // std::vector container is filled with something representing void
-                    container_[i] = (target_t)('.');
+                    container_[i] = (target_t)(' ');
             }
         }
 
@@ -58,17 +58,27 @@ class Render{
 // Overload of the << operator for a simpler print
 template <typename target_t, size_t C, size_t R>
 std::ostream& operator << (std::ostream& stream, Render<target_t, C, R>& video){
-    int mult = 1;
+    int col = 1;
     size_t cont = 0;
+    stream << "+";
+    for (size_t i = 0; i < C; i++)
+        stream << "-";
+    stream << "+\n|";
     for (const auto& i: video.getTarget()){
         stream << i;
         // Check if a row has ended and eventually break the line
-        if (cont == mult * (video.getWidth()) -1){
-            mult++;
-            stream << "\n";
+        if (cont == col * (video.getWidth()) -1){
+            col++;
+            stream << "|\n";
+            if (col <= R)
+                stream << "|";
         }
         cont++;
     }
+    stream << "+";
+    for (size_t i = 0; i < C; i++)
+        stream << "-";
+    stream << "+\n";
     return stream;
 };
 
@@ -117,7 +127,7 @@ class Triangle{
 
 };
 
-// Structure for the projection matrix values, so that its values can be supplied by the user
+// Structure for the view frustum, so that its values can be supplied by the user to the projection matrix
 class ProjectionMatrix{
     private: 
         float left_, right_, top_, bottom_, near_, far_ = 0.0f;
@@ -187,7 +197,7 @@ class Pipeline{
         size_t x_to_screen(float x){return round(((x - pm_.getLeft()) * C / (pm_.getRight() - pm_.getLeft())));}
         size_t y_to_screen(float y){return round(((y - pm_.getTop()) * R / (pm_.getBottom() - pm_.getTop())));}
 
-        // Apply the projection and overwrite the ndc values to the old coordinates
+        // Apply the perspective projection and overwrite the ndc values to the old coordinates
         void computeNdc(std::vector<Vertex*> vertices){
             float x_, y_, z_, w_;
 
@@ -250,7 +260,6 @@ class Pipeline{
                 for (size_t i = std::min({x_r_screen_min, x_r_screen_max}); i <= std::max({x_r_screen_min, x_r_screen_max}); i++){
                     for (size_t j = std::min({y_r_screen_min, y_r_screen_max}); j <= std::max({y_r_screen_min, y_r_screen_max}); j++){
                         if (isInside(triangle, i, j)){
-                            //video_(i, j) = 'x';
                             //interpolate point
                             float x_interp = ( (scalars[0]/triangle(0)->getZ())*triangle(0)->getX() +  (scalars[1]/triangle(1)->getZ())*triangle(1)->getX() + (scalars[2]/triangle(2)->getZ())*triangle(2)->getX()) / (scalars[0]/triangle(0)->getZ() + scalars[1]/triangle(1)->getZ() + scalars[2]/triangle(2)->getZ());
                             float y_interp = ( (scalars[0]/triangle(0)->getZ())*triangle(0)->getY() +  (scalars[1]/triangle(1)->getZ())*triangle(1)->getY() + (scalars[2]/triangle(2)->getZ())*triangle(2)->getY()) / (scalars[0]/triangle(0)->getZ() + scalars[1]/triangle(1)->getZ() + scalars[2]/triangle(2)->getZ());;
@@ -265,6 +274,5 @@ class Pipeline{
                     } 
                 }
             }
-            print();
         }
 };
