@@ -6,6 +6,8 @@
 #include <algorithm> 
 #include <cmath>
 
+#include <iostream>
+
 /* implementation of the software target 
  * if the Render class represent a screen, the target_t is the type of the smallest part ("pixel")
  * C is the width and R is the height of the screen
@@ -37,7 +39,7 @@ class Render{
 
         // Overloading of () operator, this allows for direct access to location (x, y) of the target
         // hiding the fact that the matrix is in fact represented in one dimension
-        target_t& operator()(size_t y, size_t x){
+        target_t& operator()(const size_t y, const size_t x){
             if (x >= R || y >= C)
                 throw std::out_of_range("Target indices out of range");
             return container_[C*x + y];
@@ -65,7 +67,11 @@ std::ostream& operator << (std::ostream& stream, Render<target_t, C, R>& video){
         stream << "-";
     stream << "+\n|";
     for (const auto& i: video.getTarget()){
-        stream << i;
+        // Check for space in int case
+        if (i == 32)
+            stream << ' ';
+        else
+            stream << i;
         // Check if a row has ended and eventually break the line
         if (cont == col * (video.getWidth()) -1){
             col++;
@@ -85,23 +91,30 @@ std::ostream& operator << (std::ostream& stream, Render<target_t, C, R>& video){
 // Class representing a 3d vertex and its coordinates
 class Vertex{
     private:
-        float x_, y_, z_ = 0.0f;
+        float x_, y_, z_, ndx_, ndy_, ndz_ = 0.0f;
+        
         //mancano vettore 3dnormal e coordinate u,v anche se non vengono usate
 
     public:
-        Vertex(float x, float y, float z): x_(x), y_(y), z_(z){}
+        Vertex(const float x, const float y, const float z): x_(x), y_(y), z_(z){}
 
         Vertex(){/* do nothing*/}
 
         // Getters
-        float getX(){return x_;}
-        float getY(){return y_;}
-        float getZ(){return z_;}
+        float getX()  {return x_;}
+        float getY()  {return y_;}
+        float getZ()  {return z_;}
+
+        float getNdx()  {return ndx_;}
+        float getNdy()  {return ndy_;}
+        float getNdz()  {return ndz_;}
+
 
         // Setters
-        void setX(float x){x_ = x;}
-        void setY(float y){y_ = y;}
-        void setZ(float z){z_ = z;}
+        void setNdx(const float x){ndx_ = x;}
+        void setNdy(const float y){ndy_= y;}
+        void setNdz(const float z){ndz_ = z;}
+
 
 };
 
@@ -119,7 +132,7 @@ class Triangle{
         }
 
         // Overload of () operator to access a single vertex
-        Vertex* operator()(size_t x){
+        Vertex* operator()(const size_t x){
             if (x > 3 || x < 0)
                 throw std::out_of_range("Vertex out of range");
             return vertices_[x];
@@ -176,7 +189,7 @@ class X2DFragmentShader : public IFragmentShader<char>{
 
 class SimpleIntShader : public IFragmentShader<int>{
     public:
-        int computeShader(float x, float y, float z, float n, float u, float v){return 48 + (int)((z - floor(z))*10);}
+        int computeShader(float x, float y, float z, float n, float u, float v){return ((z - floor(z))*10);}
 };
 
 // Context of the strategy pattern, the actual pipeline
@@ -197,7 +210,10 @@ class Pipeline{
                 for (int j = 0; j < C; j++)
                     z_buffer_(j, i) = std::numeric_limits<float>::infinity();
             }
-        } 
+        }
+
+        Pipeline(const Pipeline<target_t, C, R> & pp) = default;
+        Pipeline(Pipeline<target_t, C, R> && pp) = default;
         
         // Destructor not used since no new is called
         //~Pipeline() {delete vs_;delete fs_;}
@@ -212,31 +228,31 @@ class Pipeline{
         // Apply the perspective projection and overwrite the ndc values to the old coordinates
         void computeNdc(std::vector<Vertex*> vertices){
             float x_, y_, z_, w_;
-
             for (Vertex * vertex : vertices){
                 // compute the matrix * vector multiplication
-                x_ = (*vertex).getX()*((2*pm_.getNear())/(pm_.getRight()-pm_.getLeft())) + ((*vertex).getZ()*(-(pm_.getRight()+pm_.getLeft())/(pm_.getRight()-pm_.getLeft())));
-                y_ = (*vertex).getY()*((2*pm_.getNear())/(pm_.getBottom()-pm_.getTop())) + (*vertex).getZ()*((-(pm_.getBottom()+pm_.getTop()))/(pm_.getBottom()-pm_.getTop()));
-                z_ = ((*vertex).getZ())*((pm_.getFar()+pm_.getNear())/(pm_.getFar()-pm_.getNear())) + ((-2*pm_.getNear()*pm_.getFar())/(pm_.getFar()-pm_.getNear()));
-                w_ = (*vertex).getZ();
+                x_ = vertex->getX() * ((2*pm_.getNear())/(pm_.getRight()-pm_.getLeft())) + (vertex->getZ() * (-(pm_.getRight()+pm_.getLeft())/(pm_.getRight()-pm_.getLeft())));
+                y_ = vertex->getY() * ((2*pm_.getNear())/(pm_.getBottom()-pm_.getTop())) + vertex->getZ() * ((-(pm_.getBottom()+pm_.getTop()))/(pm_.getBottom()-pm_.getTop()));
+                z_ = vertex->getZ() * ((pm_.getFar()+pm_.getNear())/(pm_.getFar()-pm_.getNear())) + ((-2*pm_.getNear()*pm_.getFar())/(pm_.getFar()-pm_.getNear()));
+                w_ = vertex->getZ();
 
                 // normalize for w and replace original coordinates since they aren't needed anymore
-                (*vertex).setX(x_/w_);
-                (*vertex).setY(y_/w_);
+                vertex->setNdx(x_/w_);
+                vertex->setNdy(y_/w_);
                 // z needs to be "traslated" from (-1, 1) to (0,2) and divided by 2 to get it in (0, 1). Needed for the z interpolation 
-                (*vertex).setZ((z_/w_ + 1)*0.5f);
+                vertex->setNdz((z_/w_ + 1)*0.5f);
+                
             }
         }
 
         // Check if a point (x, y) is inside triangle t
         bool isInside(Triangle t, size_t x, size_t y){
             // Convert coordinates (x, y) from ndc to screen
-            float x1 = x_to_screen(t(0)->getX());
-            float x2 = x_to_screen(t(1)->getX());
-            float x3 = x_to_screen(t(2)->getX());
-            float y1 = y_to_screen(t(0)->getY());
-            float y2 = y_to_screen(t(1)->getY());
-            float y3 = y_to_screen(t(2)->getY());
+            float x1 = x_to_screen(t(0)->getNdx());
+            float x2 = x_to_screen(t(1)->getNdx());
+            float x3 = x_to_screen(t(2)->getNdx());
+            float y1 = y_to_screen(t(0)->getNdy());
+            float y2 = y_to_screen(t(1)->getNdy());
+            float y3 = y_to_screen(t(2)->getNdy());
 
             // Compute the scalars of the convex combination for barycentric coordinates, of point (x, y) based on its triangle  
             // save them because we need to correct them interpolating the verteces           
@@ -253,14 +269,15 @@ class Pipeline{
 
         void render(std::vector<Vertex*> vertices, std::vector<Triangle> triangles){
             // for each vertex transform coordinates into ndc
+            
             computeNdc(vertices);
             // rasterize
             for (Triangle triangle : triangles){
                 // setup inside-outside test by computing the rectangle coordinates
-                float x_min = std::min({triangle(0)->getX(), triangle(1)->getX(), triangle(2)->getX()});
-                float y_max = std::max({triangle(0)->getY(), triangle(1)->getY(), triangle(1)->getY()});
-                float x_max = std::max({triangle(0)->getX(), triangle(1)->getX(), triangle(2)->getX()});
-                float y_min = std::min({triangle(0)->getY(), triangle(1)->getY(), triangle(1)->getY()});
+                float x_min = std::min({triangle(0)->getNdx(), triangle(1)->getNdx(), triangle(2)->getNdx()});
+                float y_max = std::max({triangle(0)->getNdy(), triangle(1)->getNdy(), triangle(1)->getNdy()});
+                float x_max = std::max({triangle(0)->getNdx(), triangle(1)->getNdx(), triangle(2)->getNdx()});
+                float y_min = std::min({triangle(0)->getNdy(), triangle(1)->getNdy(), triangle(1)->getNdy()});
 
                 // conversion of rectangle coords to screen
                 size_t x_r_screen_min = x_to_screen(x_min);
@@ -273,9 +290,9 @@ class Pipeline{
                     for (size_t j = std::min({y_r_screen_min, y_r_screen_max}); j <= std::max({y_r_screen_min, y_r_screen_max}); j++){
                         if (isInside(triangle, i, j)){
                             //interpolate point
-                            float x_interp = ( (scalars[0]/triangle(0)->getZ())*triangle(0)->getX() +  (scalars[1]/triangle(1)->getZ())*triangle(1)->getX() + (scalars[2]/triangle(2)->getZ())*triangle(2)->getX()) / (scalars[0]/triangle(0)->getZ() + scalars[1]/triangle(1)->getZ() + scalars[2]/triangle(2)->getZ());
-                            float y_interp = ( (scalars[0]/triangle(0)->getZ())*triangle(0)->getY() +  (scalars[1]/triangle(1)->getZ())*triangle(1)->getY() + (scalars[2]/triangle(2)->getZ())*triangle(2)->getY()) / (scalars[0]/triangle(0)->getZ() + scalars[1]/triangle(1)->getZ() + scalars[2]/triangle(2)->getZ());;
-                            float z_interp = ( (scalars[0]/triangle(0)->getZ())*triangle(0)->getZ() +  (scalars[1]/triangle(1)->getZ())*triangle(1)->getZ() + (scalars[2]/triangle(2)->getZ())*triangle(2)->getZ()) / (scalars[0]/triangle(0)->getZ() + scalars[1]/triangle(1)->getZ() + scalars[2]/triangle(2)->getZ());;
+                            float x_interp = ( (scalars[0]/triangle(0)->getNdz())*triangle(0)->getNdx() +  (scalars[1]/triangle(1)->getNdz())*triangle(1)->getNdx() + (scalars[2]/triangle(2)->getNdz())*triangle(2)->getNdx()) / (scalars[0]/triangle(0)->getNdz() + scalars[1]/triangle(1)->getNdz() + scalars[2]/triangle(2)->getNdz());
+                            float y_interp = ( (scalars[0]/triangle(0)->getNdz())*triangle(0)->getNdy() +  (scalars[1]/triangle(1)->getNdz())*triangle(1)->getNdy() + (scalars[2]/triangle(2)->getNdz())*triangle(2)->getNdy()) / (scalars[0]/triangle(0)->getNdz() + scalars[1]/triangle(1)->getNdz() + scalars[2]/triangle(2)->getNdz());;
+                            float z_interp = ( (scalars[0]/triangle(0)->getNdz())*triangle(0)->getNdz() +  (scalars[1]/triangle(1)->getNdz())*triangle(1)->getNdz() + (scalars[2]/triangle(2)->getNdz())*triangle(2)->getNdz()) / (scalars[0]/triangle(0)->getNdz() + scalars[1]/triangle(1)->getNdz() + scalars[2]/triangle(2)->getNdz());;
                             
                             // update z_buff and pass the interpolated vertex of the fragment to fragmentshader (it returns a target_t)
                             if (z_buffer_(i, j) > z_interp){

@@ -1,7 +1,6 @@
 #include <iostream>
 #include "pipeline.h"
 
-using namespace std;
 
 int main(){
     //Render<char, 15, 5> video;
@@ -11,7 +10,7 @@ int main(){
     //video.fileSave("test");
 
     // using a pointer since the coordinates will be overwritten
-    vector<Vertex*> vertices;
+    std::vector<Vertex*> vertices;
     Vertex v1(1.0f, -1.0f, 1.5f);
     vertices.push_back(&v1);
     Vertex v2(1.0f, 1.0f, 1.1f);
@@ -21,7 +20,7 @@ int main(){
     Vertex v4(-1.0, -1.0, 1.9f);
     vertices.push_back(&v4);
 
-    vector<Triangle> triangles;
+    std::vector<Triangle> triangles;
     Triangle t1(&v1 ,&v2, &v3);
     triangles.push_back(t1);
     Triangle t2(&v1, &v3, &v4);
@@ -32,11 +31,17 @@ int main(){
     ProjectionMatrix pm1(-1, 1, -1, 1, 1, 2);
 
     SimpleFragmentShader sfs;
+    SimpleIntShader ifs;
     X2DFragmentShader xfs;
 
-    Pipeline<char, 150, 50> p1(pm1, &sfs);
+    Pipeline<char, 150, 50> p1 (pm1, &sfs);
+    // Pipeline<char, 150, 50> p2 (p1);
+    Pipeline<int, 150, 50> p3 (pm1, &ifs);
     
     p1.render(vertices, triangles);
     p1.print();
+
+    p3.render(vertices, triangles);
+    p3.print();
     return 0;
 }
