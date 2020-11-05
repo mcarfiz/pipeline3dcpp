@@ -32,7 +32,10 @@ int main(){
     ProjectionMatrix pm1(-1, 1, -1, 1, 1, 2);
 
     SimpleFragmentShader sfs;
+    X2DFragmentShader xfs;
+
     Pipeline<char, 150, 50> p1(pm1, &sfs);
+    
     p1.render(vertices, triangles);
     p1.print();
     return 0;

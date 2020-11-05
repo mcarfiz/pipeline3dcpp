@@ -156,8 +156,9 @@ class IFragmentShader{
         virtual ~IFragmentShader() {}
 };
 
-// Implementations of the strategy interfaces
+// Implementations of the strategy interface
 // Each shader can have multiple implementations and each implementation is hot-swappable
+// this shader in gives the first decimal of the value of z to the fragment
 class SimpleFragmentShader : public IFragmentShader<char>{
     public:
         char computeShader(float x, float y, float z, float n, float u, float v){
@@ -165,6 +166,17 @@ class SimpleFragmentShader : public IFragmentShader<char>{
             std::cout << "Stampa: " << 48 + (int)((z - floor(z))*10)<< "\n";*/
             return  48 + (int)((z - floor(z))*10);
         }
+};
+
+// Shader that produces a flat output by coloring the pixels with an 'x'
+class X2DFragmentShader : public IFragmentShader<char>{
+    public:
+        char computeShader(float x, float y, float z, float n, float u, float v){return 'x';}
+};
+
+class SimpleIntShader : public IFragmentShader<int>{
+    public:
+        int computeShader(float x, float y, float z, float n, float u, float v){return 48 + (int)((z - floor(z))*10);}
 };
 
 // Context of the strategy pattern, the actual pipeline
@@ -265,7 +277,7 @@ class Pipeline{
                             float y_interp = ( (scalars[0]/triangle(0)->getZ())*triangle(0)->getY() +  (scalars[1]/triangle(1)->getZ())*triangle(1)->getY() + (scalars[2]/triangle(2)->getZ())*triangle(2)->getY()) / (scalars[0]/triangle(0)->getZ() + scalars[1]/triangle(1)->getZ() + scalars[2]/triangle(2)->getZ());;
                             float z_interp = ( (scalars[0]/triangle(0)->getZ())*triangle(0)->getZ() +  (scalars[1]/triangle(1)->getZ())*triangle(1)->getZ() + (scalars[2]/triangle(2)->getZ())*triangle(2)->getZ()) / (scalars[0]/triangle(0)->getZ() + scalars[1]/triangle(1)->getZ() + scalars[2]/triangle(2)->getZ());;
                             
-                            //if z-buff test ok, update z_buff and pass coordinates to fragmentshader (it returns a target_t)
+                            // update z_buff and pass the interpolated vertex of the fragment to fragmentshader (it returns a target_t)
                             if (z_buffer_(i, j) > z_interp){
                                 z_buffer_(i, j) = z_interp;
                                 video_(i, j) = fs_->computeShader(x_interp, y_interp, z_interp, 0, 0, 0);     
