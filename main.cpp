@@ -40,6 +40,7 @@ int main(){
     
     p1.render(vertices, triangles);
     p1.print();
+    p1.fileSave("test");
 
     p3.render(vertices, triangles);
     p3.print();

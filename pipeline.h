@@ -52,7 +52,34 @@ class Render{
         // Save the container into a file (file name is chosen by the user)
         void fileSave(std::string filename){
             std::ofstream outFile("./" + filename + ".dat");
-            for (const auto &e : container_) outFile << e << "\n";
+
+            int col = 1;
+            size_t cont = 0;
+            outFile << "+";
+            for (size_t i = 0; i < C; i++)
+                outFile << "-";
+            outFile << "+\n|";
+            for (const auto &i : container_){
+                // Check for space in int case
+                if (i == 32)
+                    outFile << ' ';
+                else
+                    outFile << i;
+                // Check if a row has ended and eventually break the line
+                if (cont == col * (C) -1){
+                    col++;
+                    outFile << "|\n";
+                    if (col <= R)
+                        outFile << "|";
+                }
+                cont++;
+            }
+            outFile << "+";
+            for (size_t i = 0; i < C; i++)
+                outFile << "-";
+            outFile << "+\n";
+            //return stream;
+            //for (const auto &e : container_) outFile << e << "\n";
             std::cout << "File " << filename << ".dat correctly saved.\n";
         }
 };
