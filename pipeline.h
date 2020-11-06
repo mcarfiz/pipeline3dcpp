@@ -298,17 +298,11 @@ class Pipeline{
             computeNdc(vertices);
             // rasterize
             for (Triangle triangle : triangles){
-                // setup inside-outside test by computing the rectangle coordinates
-                float x_min = std::min({triangle(0)->getNdx(), triangle(1)->getNdx(), triangle(2)->getNdx()});
-                float y_max = std::max({triangle(0)->getNdy(), triangle(1)->getNdy(), triangle(1)->getNdy()});
-                float x_max = std::max({triangle(0)->getNdx(), triangle(1)->getNdx(), triangle(2)->getNdx()});
-                float y_min = std::min({triangle(0)->getNdy(), triangle(1)->getNdy(), triangle(1)->getNdy()});
-
-                // conversion of rectangle coords to screen
-                size_t x_r_screen_min = x_to_screen(x_min);
-                size_t y_r_screen_min = y_to_screen(y_min);
-                size_t x_r_screen_max = x_to_screen(x_max);
-                size_t y_r_screen_max = y_to_screen(y_max);
+                // setup inside-outside test by computing the rectangle coordinates and converting them into screen mode
+                size_t x_r_screen_min = x_to_screen(std::min({triangle(0)->getNdx(), triangle(1)->getNdx(), triangle(2)->getNdx()}));
+                size_t y_r_screen_min = y_to_screen(std::min({triangle(0)->getNdy(), triangle(1)->getNdy(), triangle(1)->getNdy()}));
+                size_t x_r_screen_max = x_to_screen(std::max({triangle(0)->getNdx(), triangle(1)->getNdx(), triangle(2)->getNdx()}));
+                size_t y_r_screen_max = y_to_screen(std::max({triangle(0)->getNdy(), triangle(1)->getNdy(), triangle(1)->getNdy()}));
                 
                 // inside-outside test for each point in the rectangle
                 for (size_t i = std::min({x_r_screen_min, x_r_screen_max}); i <= std::max({x_r_screen_min, x_r_screen_max}); i++){
