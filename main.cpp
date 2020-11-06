@@ -1,6 +1,6 @@
 #include <iostream>
 #include "pipeline.h"
-
+#include <chrono>
 
 int main(){
     //Render<char, 15, 5> video;
@@ -37,12 +37,17 @@ int main(){
     Pipeline<char, 150, 50> p1 (pm1, &sfs);
     // Pipeline<char, 150, 50> p2 (p1);
     Pipeline<int, 150, 50> p3 (pm1, &ifs);
+    auto start_time = std::chrono::high_resolution_clock::now();
     
     p1.render(vertices, triangles);
     p1.print();
     p1.fileSave("test");
+    
+    auto end_time = std::chrono::high_resolution_clock::now();
+    double elapsed_time = std::chrono::duration<double>(end_time-start_time).count();    
+    std::cout << elapsed_time;
 
-    p3.render(vertices, triangles);
-    p3.print();
+    // p3.render(vertices, triangles);
+    // p3.print();
     return 0;
 }
