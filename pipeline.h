@@ -78,8 +78,6 @@ class Render{
             for (size_t i = 0; i < C; i++)
                 outFile << "-";
             outFile << "+\n";
-            //return stream;
-            //for (const auto &e : container_) outFile << e << "\n";
             std::cout << "File " << filename << ".dat correctly saved.\n";
         }
 };
@@ -192,7 +190,7 @@ class ProjectionMatrix{
 template <typename target_t>
 class IFragmentShader{
     public:
-        virtual target_t computeShader(float x, float y, float z, float n, float u, float v) = 0;
+        virtual target_t computeShader(float x, float y, float z, float an, float bn, float cn, float u, float v) = 0;
         virtual ~IFragmentShader() {}
 };
 
@@ -201,7 +199,7 @@ class IFragmentShader{
 // this shader in gives the first decimal of the value of z to the fragment
 class SimpleFragmentShader : public IFragmentShader<char>{
     public:
-        char computeShader(float x, float y, float z, float n, float u, float v){
+        char computeShader(float x, float y, float z, float an, float bn, float cn,  float u, float v){
             /*std::cout << "x_interp: "<< x<< ", y_interp: " << y << ", z_interp: "<<z<<"\n";
             std::cout << "Stampa: " << 48 + (int)((z - floor(z))*10)<< "\n";*/
             return  48 + (int)((z - floor(z))*10);
@@ -211,12 +209,12 @@ class SimpleFragmentShader : public IFragmentShader<char>{
 // Shader that produces a flat output by coloring the pixels with an 'x'
 class X2DFragmentShader : public IFragmentShader<char>{
     public:
-        char computeShader(float x, float y, float z, float n, float u, float v){return 'x';}
+        char computeShader(float x, float y, float z, float an, float bn, float cn, float u, float v){return 'x';}
 };
 
 class SimpleIntShader : public IFragmentShader<int>{
     public:
-        int computeShader(float x, float y, float z, float n, float u, float v){return ((z - floor(z))*10);}
+        int computeShader(float x, float y, float z, float an, float bn, float cn, float u,  float v){return ((z - floor(z))*10);}
 };
 
 // Context of the strategy pattern, the actual pipeline
@@ -324,7 +322,7 @@ class Pipeline{
                             // update z_buff and pass the interpolated vertex of the fragment to fragmentshader (it returns a target_t)
                             if (z_buffer_(i, j) > z_interp){
                                 z_buffer_(i, j) = z_interp;
-                                video_(i, j) = fs_->computeShader(x_interp, y_interp, z_interp, 0, 0, 0);     
+                                video_(i, j) = fs_->computeShader(x_interp, y_interp, z_interp, 0, 0, 0, 0, 0);     
                             }    
                         }
                     } 
