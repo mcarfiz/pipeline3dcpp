@@ -1,10 +1,3 @@
-/* #include <vector>
-#include <array>
-#include <iostream>
-#include <fstream>
-#include <limits>
-#include <algorithm> 
-#include <cmath> */
 #include "scene.h"
 /* implementation of the software target 
  * if the Render class represent a screen, the target_t is the type of the smallest part ("pixel")
@@ -17,12 +10,15 @@ class Render{
         std::array<target_t, R*C> container_;
 
     public:
-        // Default constructor
-        Render(){
+        void clear_container(){
             for (size_t i = 0; i < container_.size(); i++){
                     // std::vector container is filled with something representing void
                     container_[i] = (target_t)(' ');
             }
+        }
+        // Default constructor
+        Render(){
+            this->clear_container();
         }
 
         // Copy constructor
@@ -34,6 +30,7 @@ class Render{
         Render(Render<target_t, C, R> &&t){
             container_ = std::move(t.container_);
         }
+
 
         // Getter methods
         size_t getWidth(){return C;}
@@ -205,32 +202,32 @@ class Pipeline{
         // Apply the perspective projection and overwrite the ndc values to the old coordinates
         void computeNdc(std::vector<Vertex>& vertices){
             float x_, y_, z_, w_;
-
+            // Vertex& vertex = vertices[0];
             for (Vertex& vertex : vertices){
                 // compute the matrix * vector multiplication
                 x_ = vertex.getX() * ((2*pm_.getNear())/(pm_.getRight()-pm_.getLeft())) + (vertex.getZ() * (-(pm_.getRight()+pm_.getLeft())/(pm_.getRight()-pm_.getLeft())));
                 y_ = vertex.getY() * ((2*pm_.getNear())/(pm_.getBottom()-pm_.getTop())) + vertex.getZ() * ((-(pm_.getBottom()+pm_.getTop()))/(pm_.getBottom()-pm_.getTop()));
                 z_ = vertex.getZ() * ((pm_.getFar()+pm_.getNear())/(pm_.getFar()-pm_.getNear())) + ((-2*pm_.getNear()*pm_.getFar())/(pm_.getFar()-pm_.getNear()));
                 w_ = vertex.getZ();
-
+                
                 // normalize for w and replace original coordinates since they aren't needed anymore
                 vertex.setNdx(x_/w_);
                 vertex.setNdy(y_/w_);
                 // z needs to be "traslated" from (-1, 1) to (0,2) and divided by 2 to get it in (0, 1). Needed for the z interpolation 
                 vertex.setNdz((z_/w_ + 1)*0.5f);
-
             }
         }
 
         // Check if a point (x, y) is inside triangle t
-        bool isInside(Scene& scene, size_t index, size_t x, size_t y){
+        bool isInside(Scene& scene, size_t triangle_index, size_t x, size_t y){
+            
             // Convert coordinates (x, y) from ndc to screen
-            float x1 = x_to_screen(scene(index, 0).getNdx());
-            float x2 = x_to_screen(scene(index, 1).getNdx());
-            float x3 = x_to_screen(scene(index, 2).getNdx());
-            float y1 = y_to_screen(scene(index, 0).getNdy());
-            float y2 = y_to_screen(scene(index, 1).getNdy());
-            float y3 = y_to_screen(scene(index, 2).getNdy());
+            float x1 = x_to_screen(scene(triangle_index, 0).getNdx());
+            float x2 = x_to_screen(scene(triangle_index, 1).getNdx());
+            float x3 = x_to_screen(scene(triangle_index, 2).getNdx());
+            float y1 = y_to_screen(scene(triangle_index, 0).getNdy());
+            float y2 = y_to_screen(scene(triangle_index, 1).getNdy());
+            float y3 = y_to_screen(scene(triangle_index, 2).getNdy());
 
             // Compute the scalars of the convex combination for barycentric coordinates, of point (x, y) based on its triangle  
             // save them because we need to correct them interpolating the verteces           
@@ -241,18 +238,33 @@ class Pipeline{
             return (scalars[0]>=0 && scalars[0]<=1) && (scalars[1]>=0 && scalars[1]<=1 ) && (scalars[2]>=0 && scalars[2]<=1);
         }
 
-        // Wrapper methods for print and save of screen
-        void print(){std::cout << video_;}
-        void fileSave(std::string filename){video_.fileSave(filename);}
+        // Wrapper methods for print, save and clear screen
+        Pipeline<target_t, C, R>& print(){
+            std::cout << video_;
+            return *this;
+        }
+        Pipeline<target_t, C, R>& fileSave(std::string filename){
+            video_.fileSave(filename);
+            return *this;
+        }
 
+        Pipeline<target_t, C, R>& clear(){
+            video_.clear_container();
+            return *this;
+        }
+
+        //Render method
         Pipeline<target_t, C, R>& render(Scene scene){
-            // for each vertex transform coordinates into ndc
+            
             float x_interp, y_interp, z_interp;
-           
+
+           // For each Vertex of the Scene, transform coordinates into ndc
             computeNdc(scene.getSceneVertices());
             
-            // rasterize
+            // Rasterize
             for (size_t triangle_idx=0; triangle_idx < scene.getSceneTriangles().size(); triangle_idx++){
+                
+                //Avoid redundancy by creating 3 Vertex references to the vertices of the triangle currently looped on
                 Vertex& vertex_0 = scene(triangle_idx, 0);
                 Vertex& vertex_1 = scene(triangle_idx, 1);
                 Vertex& vertex_2 = scene(triangle_idx, 2);
@@ -264,9 +276,11 @@ class Pipeline{
                 size_t x_r_screen_max = x_to_screen(std::max({vertex_0.getNdx(), vertex_1.getNdx(), vertex_2.getNdx()}));
                 size_t y_r_screen_max = y_to_screen(std::max({vertex_0.getNdy(), vertex_1.getNdy(), vertex_1.getNdy()}));
 
+
                 // inside-outside test for each point in the rectangle
                 for (size_t i = std::min({x_r_screen_min, x_r_screen_max}); i <= std::max({x_r_screen_min, x_r_screen_max}); i++){
                     for (size_t j = std::min({y_r_screen_min, y_r_screen_max}); j <= std::max({y_r_screen_min, y_r_screen_max}); j++){
+                        
                         if (isInside(scene, triangle_idx, i, j)){
                             //interpolate point
                             x_interp = ( (scalars[0]/vertex_0.getNdz())*vertex_0.getNdx() +  (scalars[1]/vertex_1.getNdz())*vertex_1.getNdx() + (scalars[2]/vertex_2.getNdz())*vertex_2.getNdx()) / (scalars[0]/vertex_0.getNdz() + scalars[1]/vertex_1.getNdz() + scalars[2]/vertex_2.getNdz());
@@ -276,7 +290,7 @@ class Pipeline{
                             // update z_buff and pass the interpolated vertex of the fragment to fragmentshader (it returns a target_t)
                             if (z_buffer_(i, j) > z_interp){
                                 z_buffer_(i, j) = z_interp;
-                                video_(i, j) = fs_->computeShader(x_interp, y_interp, z_interp, 0, 0, 0, 0, 0);     
+                                video_(i, j) = fs_->computeShader(x_interp, y_interp, z_interp, 0, 0, 0, 0, 0);  
                             }    
                         }
                     } 

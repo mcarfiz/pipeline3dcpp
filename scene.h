@@ -6,16 +6,17 @@
 #include <algorithm> 
 #include <cmath>
 
+//Arrays (size_t elements) with size 3 are called Triangle, but are in fact "coordinates" and NOT sets of Vertex objects, as shown later
 using Triangle = std::array<size_t, 3>;
 
 
 // Class representing a 3d vertex and its coordinates
 class Vertex{
     private:
+        //Constant, not-perspective projected coordinates, used because different pipelines (and different rendering behaviours) may re-use vertices
         const float x_, y_, z_ = 0.0f;
+        //Perspective projected coordinates, re-calculated every time a pipeline renders, using the Vertex
         float ndx_, ndy_, ndz_ = 0.0f;
-        
-        //mancano vettore 3dnormal e coordinate u,v anche se non vengono usate
 
     public:
         //Constructors
@@ -23,15 +24,15 @@ class Vertex{
         Vertex(const float x, const float y, const float z): x_(x), y_(y), z_(z){}
         Vertex(const Vertex& v) : x_(v.x_), y_(v.y_), z_(v.z_), ndx_(v.ndx_), ndy_(v.ndy_), ndz_(v.ndz_){}
 
-        // Getters
+        // Getters of the constant coordinates
         float getX()  {return x_;}
         float getY()  {return y_;}
         float getZ()  {return z_;}
 
+        // Getters of the pipeline-computed coordinates
         float getNdx()  {return ndx_;}
         float getNdy()  {return ndy_;}
         float getNdz()  {return ndz_;}
-
 
         // Setters
         void setNdx(const float x){ndx_ = x;}
@@ -41,17 +42,17 @@ class Vertex{
 
 };
 
-
+//Representation of a scene, with the unique vertices and the coordinates of the triangles' edges with respect to the vertices' array
 class Scene {
     private:
         std::vector<Vertex>  vertices_;
         std::vector<Triangle> triangles_;
     public:
         Scene() = default;
-        //Copy constructor (constructor based on a vector of unique vertices and a vector of coordinates corresponding to)
+        //Copy constructor 
         Scene(const std::vector<Vertex>& vertices, const std::vector<Triangle>& coordinates) : vertices_(vertices), triangles_(coordinates){}
         //Move constructor
-        Scene(std::vector<Vertex>&& vertices, const std::vector<Triangle>& coordinates) : vertices_(std::move(vertices)), triangles_(std::move(coordinates)){}
+        Scene(std::vector<Vertex>&& vertices, std::vector<Triangle>&& coordinates) : vertices_(std::move(vertices)), triangles_(std::move(coordinates)){}
 
 
         //Getter for reference of triangles' vector used by the scene
@@ -63,6 +64,8 @@ class Scene {
             return vertices_;
         }
 
+        //Operator () overload, Scene(triangle_idx, vertex_idx) returns a Vertex reference to the "vertex_idx" Vertex of the "triangle_idx" Triangle of the Scene
+        //Example: scene_ex(1, 0) returns the first Vertex of the second Triangle of Scene scene_ex
         Vertex& operator()(const size_t triangle_idx, const size_t vertex_idx){
             if (triangle_idx >= triangles_.size() || vertex_idx > 2)
                 throw std::out_of_range("Vertex out of range");
