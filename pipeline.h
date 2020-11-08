@@ -10,6 +10,7 @@ class Render{
         std::array<target_t, R*C> container_;
 
     public:
+    // Makes the container "blank"
         void clear_container(){
             for (size_t i = 0; i < container_.size(); i++){
                     // std::vector container is filled with something representing void
@@ -177,13 +178,17 @@ class Pipeline{
         std::array<float, 3> scalars;
 
     public:
-        // Constructor allows to set a projection matrix and the desired fragment shader
-        // it also initializes the z-buffer to +infinite
-        Pipeline(ProjectionMatrix pm, IFragmentShader<target_t> *fs) : pm_(pm), fs_(fs){
+        // Resets the z_buffer container to infinity values
+        void clear_z_buffer_(){
             for (int i = 0; i < R; i++){
                 for (int j = 0; j < C; j++)
                     z_buffer_(j, i) = std::numeric_limits<float>::infinity();
             }
+        }
+        // Constructor allows to set a projection matrix and the desired fragment shader
+        // it also initializes the z-buffer to +infinite
+        Pipeline(ProjectionMatrix pm, IFragmentShader<target_t> *fs) : pm_(pm), fs_(fs){
+            this->clear_z_buffer_();
         }
 
         Pipeline(const Pipeline<target_t, C, R> & pp) = default;
@@ -250,6 +255,7 @@ class Pipeline{
 
         Pipeline<target_t, C, R>& clear(){
             video_.clear_container();
+            this->clear_z_buffer_();
             return *this;
         }
 
@@ -272,14 +278,14 @@ class Pipeline{
 
                 // setup inside-outside test by computing the rectangle coordinates and converting them into screen mode
                 size_t x_r_screen_min = x_to_screen(std::min({vertex_0.getNdx(), vertex_1.getNdx(), vertex_2.getNdx()}));
-                size_t y_r_screen_min = y_to_screen(std::min({vertex_0.getNdy(), vertex_1.getNdy(), vertex_1.getNdy()}));
                 size_t x_r_screen_max = x_to_screen(std::max({vertex_0.getNdx(), vertex_1.getNdx(), vertex_2.getNdx()}));
+                size_t y_r_screen_min = y_to_screen(std::min({vertex_0.getNdy(), vertex_1.getNdy(), vertex_1.getNdy()}));
                 size_t y_r_screen_max = y_to_screen(std::max({vertex_0.getNdy(), vertex_1.getNdy(), vertex_1.getNdy()}));
 
 
                 // inside-outside test for each point in the rectangle
-                for (size_t i = std::min({x_r_screen_min, x_r_screen_max}); i <= std::max({x_r_screen_min, x_r_screen_max}); i++){
-                    for (size_t j = std::min({y_r_screen_min, y_r_screen_max}); j <= std::max({y_r_screen_min, y_r_screen_max}); j++){
+                for (size_t i = x_r_screen_min; i <= x_r_screen_max; i++){
+                    for (size_t j = y_r_screen_min; j <= y_r_screen_max; j++){
                         
                         if (isInside(scene, triangle_idx, i, j)){
                             //interpolate point
