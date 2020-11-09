@@ -27,9 +27,9 @@ int main(){
     //Scene creation via lvalue array of Vertex 
     Scene scene_1(vertices, {{0,1,2}, {0,2,3}});
     //Scene creation via rvalue array of Vertex 
-    Scene scene_2({v1, v2, v4, {-1, 0, 1.1}, {0.5, 1, 1.2}, {0.5, -0.5, 1.8}}, {{0,1,2}, {3,4,5}});
+    Scene scene_2({v1, v2, v4, {-1, 0, 1.1}, {0.5, 1, 1.1}, {0.5, -0.5, 1.1}}, {{0,1,2}, {3,4,5}});
     //Scene creation completely via rvalues, no Vertex instantiation needed
-    Scene scene_3({{-1, 0.5, 1.2}, {0, -1, 1.2}, {1, 1, 1.2}, {0, 1, 1.5}, {-1, -1, 1.5}, {1, 0, 1.5}}, {{0,1,2}, {3,4,5} });
+    Scene scene_3({{-1, 0.5, 1.2}, {0, -1, 1.2}, {1, 1, 1.2}, {-0.5, 1, 1.5}, {-1, -1, 1.5}, {1, 0, 1.5}}, {{0,1,2}, {3,4,5} });
 
     // Rendering, printing and saving the first scene, using the char based pipeline
     pChar.render(scene_1).print().fileSave("test").clear();
