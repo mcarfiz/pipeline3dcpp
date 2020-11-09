@@ -279,8 +279,8 @@ class Pipeline{
                 // setup inside-outside test by computing the rectangle coordinates and converting them into screen mode
                 size_t x_r_screen_min = x_to_screen(std::min({vertex_0.getNdx(), vertex_1.getNdx(), vertex_2.getNdx()}));
                 size_t x_r_screen_max = x_to_screen(std::max({vertex_0.getNdx(), vertex_1.getNdx(), vertex_2.getNdx()}));
-                size_t y_r_screen_min = y_to_screen(std::min({vertex_0.getNdy(), vertex_1.getNdy(), vertex_1.getNdy()}));
-                size_t y_r_screen_max = y_to_screen(std::max({vertex_0.getNdy(), vertex_1.getNdy(), vertex_1.getNdy()}));
+                size_t y_r_screen_min = y_to_screen(std::min({vertex_0.getNdy(), vertex_1.getNdy(), vertex_2.getNdy()}));
+                size_t y_r_screen_max = y_to_screen(std::max({vertex_0.getNdy(), vertex_1.getNdy(), vertex_2.getNdy()}));
 
 
                 // inside-outside test for each point in the rectangle
@@ -292,7 +292,9 @@ class Pipeline{
                             x_interp = ( (scalars[0]/vertex_0.getNdz())*vertex_0.getNdx() +  (scalars[1]/vertex_1.getNdz())*vertex_1.getNdx() + (scalars[2]/vertex_2.getNdz())*vertex_2.getNdx()) / (scalars[0]/vertex_0.getNdz() + scalars[1]/vertex_1.getNdz() + scalars[2]/vertex_2.getNdz());
                             y_interp = ( (scalars[0]/vertex_0.getNdz())*vertex_0.getNdy() +  (scalars[1]/vertex_1.getNdz())*vertex_1.getNdy() + (scalars[2]/vertex_2.getNdz())*vertex_2.getNdy()) / (scalars[0]/vertex_0.getNdz() + scalars[1]/vertex_1.getNdz() + scalars[2]/vertex_2.getNdz());;
                             z_interp = ( (scalars[0]/vertex_0.getNdz())*vertex_0.getNdz() +  (scalars[1]/vertex_1.getNdz())*vertex_1.getNdz() + (scalars[2]/vertex_2.getNdz())*vertex_2.getNdz()) / (scalars[0]/vertex_0.getNdz() + scalars[1]/vertex_1.getNdz() + scalars[2]/vertex_2.getNdz());;
-                            
+                            //z_interp = (vertex_2.getNdz()*(i-vertex_0.getNdx())*(j-vertex_1.getNdy()) + vertex_0.getNdz()*(i-vertex_1.getNdx())*(j-vertex_2.getNdy()) + vertex_1.getNdz()*(i-vertex_2.getNdx())*(j-vertex_0.getNdx()) - vertex_1.getNdz()*(i-vertex_0.getNdx())*(j-vertex_2.getNdy()) - vertex_2.getNdz()*(i-vertex_1.getNdx())*(j-vertex_0.getNdy()) - vertex_0.getNdz()*(i-vertex_2.getNdx())*(j-vertex_1.getNdy())) / (  (i-vertex_0.getNdx())*(j-vertex_1.getNdy()) +   (i-vertex_1.getNdx())*(j-vertex_2.getNdy()) +   (i-vertex_2.getNdx())*(j-vertex_0.getNdy()) -   (i-vertex_0.getNdx())*(j-vertex_2.getNdy()) -   (i-vertex_1.getNdx())*(j-vertex_0.getNdy()) -   (i-vertex_2.getNdx())*(j-vertex_1.getNdy()));
+
+
                             // update z_buff and pass the interpolated vertex of the fragment to fragmentshader (it returns a target_t)
                             if (z_buffer_(i, j) > z_interp){
                                 z_buffer_(i, j) = z_interp;
