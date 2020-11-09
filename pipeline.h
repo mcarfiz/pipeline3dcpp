@@ -34,9 +34,9 @@ class Render{
 
 
         // Getter methods
-        size_t getWidth(){return C;}
-        size_t getHeight(){return R;}
-        std::array<target_t, C * R>& getTarget(){return container_;}
+        size_t getWidth()   {return C;}
+        size_t getHeight()  {return R;}
+        std::array<target_t, C * R>& getTarget()    {return container_;}
 
         // Overloading of () operator, this allows for direct access to location (x, y) of the target
         // hiding the fact that the matrix is in fact represented in one dimension
@@ -46,14 +46,13 @@ class Render{
             return container_[C*x + y];
         }
 
-        // Setting the overload of the << operator for the print 
+        // Setting up the overload of the << operator for the print 
         template <typename T, size_t Co, size_t Ro> 
         friend std::ostream& operator << (std::ostream& stream, Render<T, Co, Ro>& video);
 
         // Save the container into a file (file name is chosen by the user)
         void fileSave(std::string filename){
             std::ofstream outFile("./" + filename + ".dat");
-
             int col = 1;
             size_t cont = 0;
             outFile << "+";
@@ -79,7 +78,7 @@ class Render{
             for (size_t i = 0; i < C; i++)
                 outFile << "-";
             outFile << "+\n";
-            std::cout << "File " << filename << ".dat correctly saved.\n";
+            std::cout << "File " << filename << ".dat correctly saved in current directory.\n";
         }
 };
 
@@ -146,7 +145,7 @@ class IFragmentShader{
 
 // Implementations of the strategy interface
 // Each shader can have multiple implementations and each implementation is hot-swappable
-// this shader in gives the first decimal of the value of z to the fragment
+// SimpleFragmentShader gives the first decimal of the value of z to the fragment, used when target_t is a char
 class SimpleFragmentShader : public IFragmentShader<char>{
     public:
         char computeShader(float x, float y, float z, float an, float bn, float cn,  float u, float v){
@@ -156,18 +155,20 @@ class SimpleFragmentShader : public IFragmentShader<char>{
         }
 };
 
-// Shader that produces a flat output by coloring the pixels with an 'x'
+// Shader that produces a flat output by coloring the pixels with an 'x' (char case)
 class X2DFragmentShader : public IFragmentShader<char>{
     public:
         char computeShader(float x, float y, float z, float an, float bn, float cn, float u, float v){return 'x';}
 };
 
+// SimpleIntShader gives the first decimal of the value of z to the fragment, used when target_t is an int
 class SimpleIntShader : public IFragmentShader<int>{
     public:
         int computeShader(float x, float y, float z, float an, float bn, float cn, float u,  float v){return ((z - floor(z))*10);}
 };
 
 // Context of the strategy pattern, the actual pipeline
+// The pipeline contains the computations and data needed to represent an object in a 2D space, such as the screen or a file
 template <typename target_t, size_t C, size_t R>
 class Pipeline{
     private:
@@ -207,7 +208,6 @@ class Pipeline{
         // Apply the perspective projection and overwrite the ndc values to the old coordinates
         void computeNdc(std::vector<Vertex>& vertices){
             float x_, y_, z_, w_;
-            // Vertex& vertex = vertices[0];
             for (Vertex& vertex : vertices){
                 // compute the matrix * vector multiplication
                 x_ = vertex.getX() * ((2*pm_.getNear())/(pm_.getRight()-pm_.getLeft())) + (vertex.getZ() * (-(pm_.getRight()+pm_.getLeft())/(pm_.getRight()-pm_.getLeft())));
@@ -224,6 +224,7 @@ class Pipeline{
         }
 
         // Check if a point (x, y) is inside triangle t
+        // also compute and store the barycentric coefficients, needed for the vertices interpolation later
         bool isInside(Scene& scene, size_t triangle_index, size_t x, size_t y){
             
             // Convert coordinates (x, y) from ndc to screen
@@ -252,14 +253,13 @@ class Pipeline{
             video_.fileSave(filename);
             return *this;
         }
-
         Pipeline<target_t, C, R>& clear(){
             video_.clear_container();
             this->clear_z_buffer_();
             return *this;
         }
 
-        //Render method
+        // The render method contains the step execution needed to do the drawing of the object
         Pipeline<target_t, C, R>& render(Scene scene){
             
             float x_interp, y_interp, z_interp;
@@ -270,7 +270,7 @@ class Pipeline{
             // Rasterize
             for (size_t triangle_idx=0; triangle_idx < scene.getSceneTriangles().size(); triangle_idx++){
                 
-                //Avoid redundancy by creating 3 Vertex references to the vertices of the triangle currently looped on
+                // Avoid redundancy by creating 3 Vertex references to the vertices of the triangle currently looped on
                 Vertex& vertex_0 = scene(triangle_idx, 0);
                 Vertex& vertex_1 = scene(triangle_idx, 1);
                 Vertex& vertex_2 = scene(triangle_idx, 2);
