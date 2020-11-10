@@ -82,7 +82,11 @@ class Pipeline{
         //~Pipeline() {delete vs_;delete fs_;}
 
         // Setter method for the shader
-        void setFragmentShader(IFragmentShader<target_t> *fs){/*delete fs_;*/ fs_ = fs;}
+        Pipeline<target_t, C, R>& setFragmentShader(IFragmentShader<target_t> *fs){
+            /*delete fs_;*/
+            fs_ = fs;
+            return *this;
+        }
 
         // The render method contains the step execution needed to do the drawing of the object
         Pipeline<target_t, C, R>& render(Scene scene){
