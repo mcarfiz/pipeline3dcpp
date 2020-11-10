@@ -225,13 +225,7 @@ class Pipeline{
 
         // Check if a point (x, y) is inside triangle t
         // also compute and store the barycentric coefficients, needed for the vertices interpolation later
-        bool isInside(size_t x, size_t y, double x1, double x2, double x3, double y1, double y2, double y3){
-
-            // Compute the scalars of the convex combination for barycentric coordinates, of point (x, y) based on its triangle  
-            // save them because we need to correct them interpolating the verteces           
-            scalars[0] = ((y2 - y3)*(x - x3) + (x3 - x2)*(y - y3)) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
-            scalars[1] = ((y3 - y1)*(x - x3) + (x1 - x3)*(y - y3)) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
-            scalars[2] = 1.0f - scalars[0] - scalars[1];
+        bool isInside(double x, double y, double x1, double x2, double x3, double y1, double y2, double y3){
 
             /* Calculate area of triangle ABC */
             double A = area (x1, y1, x2, y2, x3, y3); 
@@ -280,31 +274,38 @@ class Pipeline{
             for (size_t triangle_idx=0; triangle_idx < scene.getSceneTriangles().size(); triangle_idx++){
                 
                 // Avoid redundancy by creating variables that will be used massively later
-                double x1 = scene(triangle_idx, 0).getNdx();
-                double x2 = scene(triangle_idx, 1).getNdx();
-                double x3 = scene(triangle_idx, 2).getNdx();
-                double y1 = scene(triangle_idx, 0).getNdy();
-                double y2 = scene(triangle_idx, 1).getNdy();
-                double y3 = scene(triangle_idx, 2).getNdy();
+                double x1 = x_to_screen(scene(triangle_idx, 0).getNdx());
+                double x2 = x_to_screen(scene(triangle_idx, 1).getNdx());
+                double x3 = x_to_screen(scene(triangle_idx, 2).getNdx());
+                double y1 = y_to_screen(scene(triangle_idx, 0).getNdy());
+                double y2 = y_to_screen(scene(triangle_idx, 1).getNdy());
+                double y3 = y_to_screen(scene(triangle_idx, 2).getNdy());
                 double z1 = scene(triangle_idx, 0).getNdz();
                 double z2 = scene(triangle_idx, 1).getNdz();
                 double z3 = scene(triangle_idx, 2).getNdz();
 
                 // setup inside-outside test by computing the rectangle coordinates and converting them into screen mode
-                size_t x_r_screen_min = x_to_screen(std::min({x1, x2, x3}));
-                size_t x_r_screen_max = x_to_screen(std::max({x1, x2, x3}));
-                size_t y_r_screen_min = y_to_screen(std::min({y1, y2, y3}));
-                size_t y_r_screen_max = y_to_screen(std::max({y1, y2, y3}));
+                size_t x_r_screen_min = std::min({x1, x2, x3});
+                size_t x_r_screen_max = std::max({x1, x2, x3});
+                size_t y_r_screen_min = std::min({y1, y2, y3});
+                size_t y_r_screen_max = std::max({y1, y2, y3});
 
 
                 // inside-outside test for each point in the rectangle
                 for (size_t x = x_r_screen_min; x <= x_r_screen_max; x++){
                     for (size_t y = y_r_screen_min; y <= y_r_screen_max; y++){
                         
-                        if (isInside(x, y, x_to_screen(x1), x_to_screen(x2), x_to_screen(x3), y_to_screen(y1), y_to_screen(y2), y_to_screen(y3))){
+                        if (isInside(x, y, x1, x2, x3, y1, y2, y3)){
+
+                            // Compute the scalars of the convex combination for barycentric coordinates, of point (x, y) based on its triangle  
+                            // save them because we need to correct them interpolating the verteces           
+                            scalars[0] = ((y2 - y3)*(x - x3) + (x3 - x2)*(y - y3)) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
+                            scalars[1] = ((y3 - y1)*(x - x3) + (x1 - x3)*(y - y3)) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
+                            scalars[2] = 1.0f - scalars[0] - scalars[1];
+
                             //interpolate point
-                            x_interp = ( (scalars[0]/z1)*x1 +  (scalars[1]/z2)*x2 + (scalars[2]/z3)*x3) / (scalars[0]/z1 + scalars[1]/z2 + scalars[2]/z3);
-                            y_interp = ( (scalars[0]/z1)*y1 +  (scalars[1]/z2)*y2 + (scalars[2]/z3)*y3) / (scalars[0]/z1 + scalars[1]/z2 + scalars[2]/z3);;
+                            x_interp = ( (scalars[0]/z1)*scene(triangle_idx, 0).getNdx() +  (scalars[1]/z2)*scene(triangle_idx, 1).getNdx() + (scalars[2]/z3)*scene(triangle_idx, 2).getNdx()) / (scalars[0]/z1 + scalars[1]/z2 + scalars[2]/z3);
+                            y_interp = ( (scalars[0]/z1)*scene(triangle_idx, 0).getNdy() +  (scalars[1]/z2)*scene(triangle_idx, 1).getNdy() + (scalars[2]/z3)*scene(triangle_idx, 2).getNdy()) / (scalars[0]/z1 + scalars[1]/z2 + scalars[2]/z3);;
                             z_interp = ( (scalars[0]/z1)*z1 +  (scalars[1]/z2)*z2 + (scalars[2]/z3)*z3) / (scalars[0]/z1 + scalars[1]/z2 + scalars[2]/z3);;
 
                             // update z_buff and pass the interpolated vertex of the fragment to fragmentshader (it returns a target_t)
