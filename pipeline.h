@@ -32,6 +32,15 @@ class Render{
             container_ = std::move(t.container_);
         }
 
+        //Copy assignment
+        void operator = (const Render<target_t, C, R> &t){
+            container_ = t.container_;
+        }
+
+        // Move assignment
+        void operator = (Render<target_t, C, R> &&t){
+            container_ = std::move(t.container_);
+        }
 
         // Getter methods
         size_t getWidth()   {return C;}
@@ -149,8 +158,6 @@ class IFragmentShader{
 class SimpleFragmentShader : public IFragmentShader<char>{
     public:
         char computeShader(double x, double y, double z, double an, double bn, double cn,  double u, double v){
-            /*std::cout << "x_interp: "<< x<< ", y_interp: " << y << ", z_interp: "<<z<<"\n";
-            std::cout << "Stampa: " << 48 + (int)((z - floor(z))*10)<< "\n";*/
             return  48 + (int)((z - floor(z))*10);
         }
 };
@@ -158,13 +165,17 @@ class SimpleFragmentShader : public IFragmentShader<char>{
 // Shader that produces a flat output by coloring the pixels with an 'x' (char case)
 class X2DFragmentShader : public IFragmentShader<char>{
     public:
-        char computeShader(double x, double y, double z, double an, double bn, double cn, double u, double v){return 'x';}
+        char computeShader(double x, double y, double z, double an, double bn, double cn, double u, double v){
+            return 'x';
+        }
 };
 
 // SimpleIntShader gives the first decimal of the value of z to the fragment, used when target_t is an int
 class SimpleIntShader : public IFragmentShader<int>{
     public:
-        int computeShader(double x, double y, double z, double an, double bn, double cn, double u,  double v){return ((z - floor(z))*10);}
+        int computeShader(double x, double y, double z, double an, double bn, double cn, double u,  double v){
+            return ((z - floor(z))*10);
+        }
 };
 
 // Context of the strategy pattern, the actual pipeline
@@ -177,29 +188,6 @@ class Pipeline{
         IFragmentShader<target_t> *fs_;
         Render<double, C, R> z_buffer_;
         std::array<double, 3> scalars;
-
-    public:
-        // Resets the z_buffer container to infinity values
-        void clear_z_buffer_(){
-            for (int i = 0; i < R; i++){
-                for (int j = 0; j < C; j++)
-                    z_buffer_(j, i) = std::numeric_limits<double>::infinity();
-            }
-        }
-        // Constructor allows to set a projection matrix and the desired fragment shader
-        // it also initializes the z-buffer to +infinite
-        Pipeline(ProjectionMatrix pm, IFragmentShader<target_t> *fs) : pm_(pm), fs_(fs){
-            this->clear_z_buffer_();
-        }
-
-        Pipeline(const Pipeline<target_t, C, R> & pp) = default;
-        Pipeline(Pipeline<target_t, C, R> && pp) = default;
-        
-        // Destructor not used since no new is called
-        //~Pipeline() {delete vs_;delete fs_;}
-
-        // Setter method for the shader
-        void setFragmentShader(IFragmentShader<target_t> *fs){/*delete fs_;*/ fs_ = fs;}
 
         // Convert a point coordinate from ndc to screen space to be printable
         inline size_t x_to_screen(double x){return floor(((x - pm_.getLeft()) * C / (pm_.getRight() - pm_.getLeft())));}
@@ -253,6 +241,30 @@ class Pipeline{
             return (A == A1 + A2 + A3); 
         }
 
+        // Resets the z_buffer container to infinity values
+        void clear_z_buffer_(){
+            for (int i = 0; i < R; i++){
+                for (int j = 0; j < C; j++)
+                    z_buffer_(j, i) = std::numeric_limits<double>::infinity();
+            }
+        }
+
+    public:
+
+        // Constructor allows to set a projection matrix and the desired fragment shader
+        // it also initializes the z-buffer to +infinite
+        Pipeline(ProjectionMatrix pm, IFragmentShader<target_t> *fs) : pm_(pm), fs_(fs){
+            this->clear_z_buffer_();
+        }
+
+        Pipeline(const Pipeline<target_t, C, R> & pp) = default;
+        Pipeline(Pipeline<target_t, C, R> && pp) = default;
+        
+        // Destructor not used since no new (keyword) is called
+        //~Pipeline() {delete vs_;delete fs_;}
+
+        // Setter method for the shader
+        void setFragmentShader(IFragmentShader<target_t> *fs){/*delete fs_;*/ fs_ = fs;}
 
         // The render method contains the step execution needed to do the drawing of the object
         Pipeline<target_t, C, R>& render(Scene scene){
@@ -303,6 +315,11 @@ class Pipeline{
                 }
             }
             return *this;
+        }
+
+        //Getter for Render, useful when the current rendered image has to be saved in an external Render object
+        Render<target_t, C, R>& getRender(){
+            return video_;
         }
         
         // Wrapper methods for print, save and clear screen

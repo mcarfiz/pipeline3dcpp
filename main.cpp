@@ -30,15 +30,22 @@ int main(){
     Scene scene_2({v1, v2, v4, {-1, 0, 1.1}, {0.5, 1, 1.1}, {0.5, -0.5, 1.1}}, {{0,1,2}, {3,4,5}});
     //Scene creation completely via rvalues, no Vertex instantiation needed
     Scene scene_3({{-1, 0.5, 1.2}, {0, -1, 1.2}, {1, 1, 1.2}, {-0.5, 1, 1.5}, {-1, -1, 1.5}, {1, 0, 1.5}}, {{0,1,2}, {3,4,5} });
-
+    
     // Rendering, printing and saving the first scene, using the char based pipeline
     pChar.render(scene_1).print().fileSave("test").clear();
-
-    // //Rendering and printing the second scene, using the int based pipeline
+    
+    //Rendering and printing the second scene, using the int based pipeline
      pInt.render(scene_2).print().clear();
 
     //Rendering and printing the third scene, using the char based pipeline
     pChar.render(scene_3).print();
+
+    //The last rendered image of a Pipeline object can be saved in a new Render object for further use
+    Render<char, 150, 50> nRender(pChar.getRender());
+    //Clear the pipeline pChar's Render
+    pChar.clear();
+    //Print the last Render used by Pipeline pChar, even if it has been cleaned
+    std::cout << nRender ;
 
 
 
