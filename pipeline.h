@@ -11,7 +11,7 @@ class Render{
 
     public:
     // Makes the container "blank"
-        void clear_container(){
+        inline void clear_container(){
             for (size_t i = 0; i < container_.size(); i++){
                     // std::vector container is filled with something representing void
                     container_[i] = (target_t)(' ');
@@ -189,6 +189,14 @@ class Pipeline{
         Render<double, C, R> z_buffer_;
         std::array<double, 3> scalars;
 
+        // Sets the z_buffer container to infinity values
+        inline void clear_z_buffer_(){
+            for (int i = 0; i < R; i++){
+                for (int j = 0; j < C; j++)
+                    z_buffer_(j, i) = std::numeric_limits<double>::infinity();
+            }
+        }
+
         // Convert a point coordinate from ndc to screen space to be printable
         inline size_t x_to_screen(double x){return floor(((x - pm_.getLeft()) * C / (pm_.getRight() - pm_.getLeft())));}
         inline size_t y_to_screen(double y){return floor(((y - pm_.getTop()) * R / (pm_.getBottom() - pm_.getTop())));}
@@ -241,13 +249,6 @@ class Pipeline{
             return (A == A1 + A2 + A3); 
         }
 
-        // Resets the z_buffer container to infinity values
-        void clear_z_buffer_(){
-            for (int i = 0; i < R; i++){
-                for (int j = 0; j < C; j++)
-                    z_buffer_(j, i) = std::numeric_limits<double>::infinity();
-            }
-        }
 
     public:
 
@@ -268,7 +269,8 @@ class Pipeline{
 
         // The render method contains the step execution needed to do the drawing of the object
         Pipeline<target_t, C, R>& render(Scene scene){
-            
+            video_.clear_container();
+            clear_z_buffer_();
             double x_interp = 0, y_interp=0, z_interp;
 
            // For each Vertex of the Scene, transform coordinates into ndc
@@ -331,9 +333,5 @@ class Pipeline{
             video_.fileSave(filename);
             return *this;
         }
-        Pipeline<target_t, C, R>& clear(){
-            video_.clear_container();
-            this->clear_z_buffer_();
-            return *this;
-        }
+
 };
