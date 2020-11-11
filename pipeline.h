@@ -133,8 +133,7 @@ class Pipeline{
                         
                         if (isInside(x, y, x1, x2, x3, y1, y2, y3)){
 
-                            // Compute the scalars of the convex combination for barycentric coordinates, of point (x, y) based on its triangle  
-                            // save them because we need to correct them interpolating the verteces           
+                            // Compute the scalars of the convex combination for barycentric coordinates, of point (x, y) based on its triangle             
                             scalars[0] = ((y2 - y3)*(x - x3) + (x3 - x2)*(y - y3)) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
                             scalars[1] = ((y3 - y1)*(x - x3) + (x1 - x3)*(y - y3)) / ((y2 - y3)*(x1 - x3) + (x3 - x2)*(y1 - y3));
                             scalars[2] = 1.0f - scalars[0] - scalars[1];
@@ -161,7 +160,7 @@ class Pipeline{
             return video_;
         }
         
-        // Wrapper methods for print, save and clear screen
+        // Wrapper methods for print and save render result
         Pipeline<target_t, C, R>& print(){
             std::cout << video_;
             return *this;
