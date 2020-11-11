@@ -1,10 +1,10 @@
-
 /*  
 Giacomo Arrigo 860022
 Marco Carfizzi 860149
 */
 
 #include "pipeline.h"
+
 
 int main(){
 
@@ -49,8 +49,6 @@ int main(){
     //The last rendered image of a Pipeline object can be saved in a new Render object for further use
     Render<char, 150, 50> nRender(pChar.getRender());
     std::cout << nRender ;
-
-
 
     return 0;
 }
