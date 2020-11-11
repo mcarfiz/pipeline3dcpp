@@ -1,3 +1,8 @@
+/*  
+Giacomo Arrigo 860022
+Marco Carfizzi 860149
+*/
+
 #include "render.h"
 // Structure for the view frustum, so that its values can be supplied by the user to the projection matrix
 class ProjectionMatrix{

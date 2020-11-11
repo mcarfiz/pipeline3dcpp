@@ -1,3 +1,9 @@
+
+/*  
+Giacomo Arrigo 860022
+Marco Carfizzi 860149
+*/
+
 #include "pipeline.h"
 
 int main(){

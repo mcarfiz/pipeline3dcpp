@@ -1,3 +1,8 @@
+/*  
+Giacomo Arrigo 860022
+Marco Carfizzi 860149
+*/
+
 #include "shader.h"
 
 
@@ -42,27 +47,31 @@ class Pipeline{
             }
         }
 
+        // Compute the area of a triangle given the coordinates of 3 vertices
         inline double area(double x1, double y1, double x2, double y2, double x3, double y3) { 
             return std::abs((x1*(y2-y3) + x2*(y3-y1)+ x3*(y1-y2))/2.0); 
         } 
 
         // Check if a point (x, y) is inside triangle t
-        // also compute and store the barycentric coefficients, needed for the vertices interpolation later
+        // P = (x,y), A = (x1, y1), B = (x2, y2), C = (x3, y3)
         bool isInside(double x, double y, double x1, double x2, double x3, double y1, double y2, double y3){
 
-            /* Calculate area of triangle ABC */
+            // Calculate area of triangle ABC
             double A = area (x1, y1, x2, y2, x3, y3); 
             
-            /* Calculate area of triangle PBC */   
+            // Calculate area of triangle PBC
             double A1 = area (x, y, x2, y2, x3, y3); 
             
-            /* Calculate area of triangle PAC */   
+            // Calculate area of triangle PAC   
             double A2 = area (x1, y1, x, y, x3, y3); 
             
-            /* Calculate area of triangle PAB */    
+            // Calculate area of triangle PAB    
             double A3 = area (x1, y1, x2, y2, x, y); 
                 
-            /* Check if sum of A1, A2 and A3 is same as A */ 
+            /* Check if sum of A1, A2 and A3 is same as A:
+            if the point is inside the triangle, the areas of the triangles having (x, y) as third vertex will be partitions of the initial triangle,
+            therefore the sum will be equal to the total area.
+            If the point is outside, the sum of the areas will be greater than the initial triangle's area  */
             return (A == A1 + A2 + A3); 
         }
 
