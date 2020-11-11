@@ -1,53 +1,54 @@
-#include <iostream>
+/*  
+Giacomo Arrigo 860022
+Marco Carfizzi 860149
+*/
+
 #include "pipeline.h"
-#include <chrono>
+
 
 int main(){
-    //Render<char, 15, 5> video;
-    //video(0,0) = '1';
-    //cout << video(0, 0) << "\n";
-    //cout << video;
-    //video.fileSave("test");
 
-    // using a pointer since the coordinates will be overwritten
-    std::vector<Vertex*> vertices;
-    Vertex v1(1.0f, -1.0f, 1.5f);
-    vertices.push_back(&v1);
-    Vertex v2(1.0f, 1.0f, 1.1f);
-    vertices.push_back(&v2);
-    Vertex v3(-1.0f, 1.0, 1.5f);
-    vertices.push_back(&v3);
-    Vertex v4(-1.0, -1.0, 1.9f);
-    vertices.push_back(&v4);
+    //Instantiation of different Vertex objects, useful if some or all are used by 2 or more Scene objects
+    //Otherwise, vertices can be passed to a Scene via rvalue as shown later
+    Vertex v1(1.0, -1.0, 1.5);
+    Vertex v2(1.0, 1.0, 1.1);
+    Vertex v3(-1.0, 1.0, 1.5);
+    Vertex v4(-1.0, -1.0, 1.9);
+    std::vector<Vertex> vertices {v1,v2,v3,v4};
 
-    std::vector<Triangle> triangles;
-    Triangle t1(&v1 ,&v2, &v3);
-    triangles.push_back(t1);
-    Triangle t2(&v1, &v3, &v4);
-    triangles.push_back(t2);
-    //cout << v1.getZ() << "\n";
-
-    //left=top=-1, right=bottom=near=1, and far=2;
+    //left = -1, right = 1, top = -1, bottom = 1, near = 1, far=2
     ProjectionMatrix pm1(-1, 1, -1, 1, 1, 2);
 
+    //Instantiation of different types of fragment shaders (different behaviours, strategy pattern)
     SimpleFragmentShader sfs;
     SimpleIntShader ifs;
-    X2DFragmentShader xfs;
 
-    Pipeline<char, 150, 50> p1 (pm1, &sfs);
-    // Pipeline<char, 150, 50> p2 (p1);
-    Pipeline<int, 150, 50> p3 (pm1, &ifs);
-    auto start_time = std::chrono::high_resolution_clock::now();
-    
-    p1.render(vertices, triangles);
-    p1.print();
-    p1.fileSave("test");
-    
-    auto end_time = std::chrono::high_resolution_clock::now();
-    double elapsed_time = std::chrono::duration<double>(end_time-start_time).count();    
-    std::cout << elapsed_time;
+    //Pipeline with the char shader behaviour
+    Pipeline<char, 150, 50> pChar (pm1, &sfs);
 
-    // p3.render(vertices, triangles);
-    // p3.print();
+    //Pipeline with the int shader behaviour
+    Pipeline<int, 150, 50> pInt (pm1, &ifs);
+
+    
+    //Scene creation via lvalue array of Vertex 
+    Scene scene_1(vertices, {{0,1,2}, {0,2,3}});
+    //Scene creation via rvalue array of Vertex 
+    Scene scene_2({v1, v2, v4, {-1, 0, 1.1}, {0.5, 1, 1.1}, {0.5, -0.5, 1.1}}, {{0,1,2}, {3,4,5}});
+    //Scene creation completely via rvalues, no Vertex instantiation needed
+    Scene scene_3({{-1, 0.5, 1.2}, {0, -1, 1.2}, {1, 1, 1.2}, {-0.5, 1, 1.5}, {-1, -1, 1.5}, {1, 0, 1.5}}, {{0,1,2}, {3,4,5} });
+    
+    // Rendering, printing and saving the first scene, using the char based pipeline
+    pChar.render(scene_1).print().fileSave("test");
+    
+    //Rendering and printing the second scene, using the int based pipeline
+     pInt.render(scene_2).print();
+
+    //Rendering and printing the third scene, using the char based pipeline
+    pChar.render(scene_3).print();
+
+    //The last rendered image of a Pipeline object can be saved in a new Render object for further use
+    Render<char, 150, 50> nRender(pChar.getRender());
+    std::cout << nRender ;
+
     return 0;
 }
